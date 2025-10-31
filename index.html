@@ -1,28 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FINSEN RITTER — EPC Chat Assistant</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="shortcut icon"
+    href="https://media.licdn.com/dms/image/v2/C4E0BAQEVdFuwbZKfmA/company-logo_200_200/company-logo_200_200/0/1630647188573?e=2147483647&v=beta&t=YJKckJUGSJlNyw91rDgUKHtfobB25OiJRPTYaNJleTM"
+    type="image/x-icon">
   <style>
-    body { font-family: 'Poppins', sans-serif; }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 4px;
+    }
+
+    pre,
+    code {
+      background: #f5f5f5;
+      padding: 6px 10px;
+      border-radius: 6px;
+      display: block;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
   </style>
-  <link rel="shortcut icon" href="https://media.licdn.com/dms/image/v2/C4E0BAQEVdFuwbZKfmA/company-logo_200_200/company-logo_200_200/0/1630647188573?e=2147483647&v=beta&t=YJKckJUGSJlNyw91rDgUKHtfobB25OiJRPTYaNJleTM" type="image/x-icon">
 </head>
 
 <body class="flex flex-col min-h-screen bg-white text-gray-900">
 
   <!-- Header -->
   <header class="flex justify-between items-center px-8 py-3 border-b border-gray-200 shadow-sm bg-white">
-    <img 
-      src="https://finsenritter.com/wp-content/uploads/2025/08/Company-Logo-1536x431.png"
-      alt="Finsen Ritter Logo"
-      class="h-8 w-auto object-contain"
-    />
+    <img src="https://finsenritter.com/wp-content/uploads/2025/08/Company-Logo-1536x431.png"
+      alt="Finsen Ritter Logo" class="h-8 w-auto object-contain" />
   </header>
 
   <!-- Chat Section -->
@@ -34,16 +53,10 @@
 
   <!-- Input Section -->
   <footer class="border-t border-gray-200 bg-white px-6 py-4 flex items-center gap-3">
-    <textarea 
-      id="input"
-      rows="1"
-      placeholder="Type your message..."
-      class="flex-1 resize-none rounded-full px-5 py-3 text-sm bg-gray-100 text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
-    ></textarea>
-    <button
-      id="sendBtn"
-      class="bg-violet-600 hover:bg-violet-700 text-white font-medium text-sm px-6 py-3 rounded-full shadow-sm transition active:scale-95"
-    >
+    <textarea id="input" rows="1" placeholder="Type your message..."
+      class="flex-1 resize-none rounded-full px-5 py-3 text-sm bg-gray-100 text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500 transition"></textarea>
+    <button id="sendBtn"
+      class="bg-violet-600 hover:bg-violet-700 text-white font-medium text-sm px-6 py-3 rounded-full shadow-sm transition active:scale-95">
       Send
     </button>
   </footer>
@@ -53,155 +66,136 @@
     const input = document.getElementById("input");
     const sendBtn = document.getElementById("sendBtn");
 
-    const GEMINI_API_KEY = "AIzaSyDOfqiGrl0m1QlnAm8JFQfkggWFOyp5Bz8";
-    const STORAGE_KEY = "finsenritter_chat_history";
+    const OPENAI_API_KEY = "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";
 
-    // === Append message ===
-    function appendMessage(role, text, html = false, save = true) {
-      const wrap = document.createElement("div");
-      const bubble = document.createElement("div");
-      wrap.classList.add("flex", "w-full");
-      bubble.classList.add(
-        "px-4", "py-3", "max-w-[75%]", "text-sm", "rounded-2xl",
-        "leading-relaxed", "whitespace-pre-wrap", "break-words", "shadow-sm"
-      );
-      if (role === "user") {
-        wrap.classList.add("justify-end");
-        bubble.classList.add("bg-violet-600", "text-white", "rounded-tr-none");
-      } else {
-        wrap.classList.add("justify-start");
-        bubble.classList.add("bg-gray-100", "text-gray-800", "rounded-tl-none");
+    let chatHistory = JSON.parse(localStorage.getItem("chatHistory")) || [];
+
+    function saveChat(role, text) {
+      chatHistory.push({ role, text });
+      localStorage.setItem("chatHistory", JSON.stringify(chatHistory));
+    }
+
+    function loadChat() {
+      if (chatHistory.length > 0) {
+        chat.innerHTML = "";
+        chatHistory.forEach(msg => appendMessage(msg.role, msg.text));
       }
-      if (html) bubble.innerHTML = text; else bubble.textContent = text;
-      wrap.appendChild(bubble);
-      chat.appendChild(wrap);
+    }
+
+    // ✅ ADD CTA BUTTON IN EVERY BOT MESSAGE
+    function appendMessage(role, text) {
+      const div = document.createElement("div");
+      div.classList.add("flex", role === "user" ? "justify-end" : "justify-start");
+
+      let messageContent = `
+        <div class='px-4 py-3 max-w-[80%] text-sm rounded-2xl shadow-sm ${role === "user"
+          ? "bg-violet-600 text-white"
+          : "bg-gray-100 text-gray-900"
+        }'>
+          ${formatMessage(text)}
+          ${role === "bot"
+          ? `<div class="mt-3 text-center">
+              <a href="tel:18008892141" 
+                class="inline-block bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-sm transition">
+                📞 Connect with Finsen Ritter — 1800-889-2141
+              </a>
+            </div>`
+          : ""}
+        </div>`;
+
+      div.innerHTML = messageContent;
+      chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
-
-      if (save) {
-        const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-        history.push({ role, text, html });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-      }
     }
 
-    // === Load Chat History ===
-    function loadChatHistory() {
-      const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-      history.forEach(msg => appendMessage(msg.role, msg.text, msg.html, false));
+    function formatMessage(text) {
+      return text
+        .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+        .replace(/```(.*?)```/gs, "<pre>$1</pre>")
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/\n\s*[-•]\s/g, "<br>• ")
+        .replace(/\n/g, "<br>")
+        .replace(
+          /(https?:\/\/[^\s<>(){}[\]]+)/g,
+          '<a href="$1" target="_blank" class="text-violet-600 underline break-all">$1</a>'
+        );
     }
 
-    // === Plant Calculation ===
-    function calculatePlant(capacityTPD) {
-      const biogasYield = capacityTPD * 100 * 0.9;
-      const methanePurity = 98;
-      const upgradedGas = biogasYield * 0.6;
-      const dailyRevenue = upgradedGas * 55;
-      const opex = capacityTPD * 25000;
-      const capex = capacityTPD * 18000000;
-      const profit = Math.abs(dailyRevenue * 365 - opex * 365 - (capex / 5));
-      return { capacityTPD, biogasYield, upgradedGas, methanePurity, dailyRevenue, opex, capex, profit };
-    }
-
-    function generateBreakdownHTML(data) {
-      return `
-      <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mt-2 text-sm">
-        <h3 class="font-semibold text-violet-600 mb-2">${data.capacityTPD} TPD Plant Performance</h3>
-        <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-gray-700">
-          <div><strong>Biogas Generation:</strong> ${data.biogasYield.toLocaleString()} Nm³/day</div>
-          <div><strong>Methane Purity:</strong> ${data.methanePurity}%</div>
-          <div><strong>CBG Output:</strong> ${data.upgradedGas.toLocaleString()} Nm³/day</div>
-          <div><strong>Daily Revenue:</strong> ₹${data.dailyRevenue.toLocaleString()}</div>
-          <div><strong>OPEX (Daily):</strong> ₹${data.opex.toLocaleString()}</div>
-          <div><strong>CAPEX:</strong> ₹${data.capex.toLocaleString()}</div>
-          <div><strong>Annual Profit:</strong> ₹${data.profit.toLocaleString()}</div>
-        </div>
-      </div>`;
-    }
-
-    function extractTPD(text) {
-      const match = text.match(/(\d+(\.\d+)?)\s*TPD/i);
-      return match ? parseFloat(match[1]) : null;
-    }
-
-    // === Ask Gemini with memory ===
-    async function askGemini(question) {
-      const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-      const lastMessages = history
-        .slice(-8)
-        .map(m => `${m.role === "user" ? "User" : "Bot"}: ${m.text}`)
-        .join("\n");
-
+    async function askChatGPT(question) {
       const prompt = `
-      You are Finsen Ritter EPC assistant.
-      Continue this conversation naturally and help the user with EPC/CBG/CNG plant details.
-      include in every massage for more connect with taruna here's her number +91-9201959506
-      Conversation so far:
-      ${lastMessages}
+You are "Finsen Ritter EPC Assistant".
+Continue chat in user's preferred language.
+You are trained on biogas/CBG/CNG EPC project data.
 
-      User: ${question}
+If user asks "12 TPD plant cost" or "10 TPD CBG production":
+
+Your job:
+- Perform cost & yield calculation.
+- Show only results (no formulas or explanation).
+- If someone asks for plant cost, share only this link:
+https://anirudhxrajput.github.io/Biogas-Plant-Calculator/.
+
+Otherwise, answer normally — always in favour of Finsen Ritter, highlighting thermophilic digester technology and its advantages.
       `;
 
       try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-          }
-        );
+        const res = await fetch("https://api.openai.com/v1/responses", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${OPENAI_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "gpt-4.1-nano",
+            input: prompt + "\nUser: " + question,
+          }),
+        });
+
         const data = await res.json();
-        let reply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "No response.";
-        return reply;
+        return data?.output?.[0]?.content?.[0]?.text?.trim() || "No response.";
       } catch (err) {
+        console.error(err);
         return "⚠️ Network error. Please try again later.";
       }
     }
 
     async function handleUserMessage(text) {
-      const tpd = extractTPD(text);
-      if (tpd) {
-        const d = calculatePlant(tpd);
-        appendMessage("bot", `A ${tpd} TPD plant can yield about ${d.upgradedGas.toLocaleString()} Nm³/day of CBG with ${d.methanePurity}% purity.`);
-        appendMessage("bot", generateBreakdownHTML(d), true);
-        return;
-      }
-      const reply = await askGemini(text);
-      appendMessage("bot", reply);
-    }
-
-    async function sendMessage() {
-      const text = input.value.trim();
-      if (!text) return;
-
       appendMessage("user", text);
-      input.value = "";
-      input.focus();
+      saveChat("user", text);
 
       const thinkingDiv = document.createElement("div");
       thinkingDiv.classList.add("flex", "justify-start");
-      thinkingDiv.innerHTML = `<div class='px-4 py-3 max-w-[75%] text-sm rounded-2xl bg-gray-100 text-gray-500 italic shadow-sm'>Thinking...</div>`;
+      thinkingDiv.innerHTML = `<div class='px-4 py-3 max-w-[80%] text-sm rounded-2xl bg-gray-100 text-gray-500 italic shadow-sm'>Messaging...</div>`;
       chat.appendChild(thinkingDiv);
       chat.scrollTop = chat.scrollHeight;
 
-      await handleUserMessage(text);
+      const reply = await askChatGPT(text);
       chat.removeChild(thinkingDiv);
+      appendMessage("bot", reply);
+      saveChat("bot", reply);
     }
 
-    sendBtn.onclick = sendMessage;
+    sendBtn.onclick = () => {
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+      handleUserMessage(text);
+    };
+
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        sendMessage();
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+        handleUserMessage(text);
       }
     });
 
-    // === On Load ===
     window.onload = () => {
-      loadChatHistory();
-      const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-      if (history.length === 0) {
-        appendMessage("bot", "👋 Hello! I’m your EPC assistant from Finsen Ritter. How can I help you today?");
+      loadChat();
+      if (chatHistory.length === 0) {
+        appendMessage("bot", "👋 Hello! I’m your EPC assistant from Finsen Ritter. In which language are you comfortable?");
       }
       chat.scrollTop = chat.scrollHeight;
     };
